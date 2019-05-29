@@ -1,6 +1,12 @@
 
 # Separate a collapsed column into multiple rows
 
+Date: May 29, 2019
+
+Made by: Cristian E. Nuno
+
+## Overview
+
 Sometimes a variable has multiple elements stored in one row, where they are each separated by a delimeter (i.e. `,`, `\t`, `\`, etc.). Often it more useful to separate those elements into their own records so our [data becomes tidy](http://vita.had.co.nz/papers/tidy-data.pdf).
 
 ## Goal
@@ -388,16 +394,493 @@ grades_df.head(10)
 
 
 
-### Merge `grades_df` onto `cps_sy1819` via a left join
+## One Hot Encoding
 
-We'll use the indices from `cps_sy1819` on the left-hand side, along with the `school_index` values from `grades_df`, to perfom the join.
+![ohe drawing](../visuals/ohe_chris_albon.png)
+
+We would like to one hot encode the `grade_offered` feature in `grades_df` to create new features that identify if a CPS school serves a particular grade. 
+
+*To learn more about one hot encoding, [click here](https://github.com/cenuno/classification/tree/master/ohe#one-hot-encoding).*
+
+
+```python
+from sklearn.preprocessing import OneHotEncoder
+```
+
+
+```python
+# drop the first category to avoid multi-collinearity
+encoder = OneHotEncoder(drop="first", 
+                        categories="auto").fit(grades_df[["grade_offered"]])
+```
+
+
+```python
+ohe = pd.DataFrame(encoder.transform(grades_df[["grade_offered"]]).toarray(),
+                   columns=encoder.get_feature_names(["grade"]))
+
+ohe.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>grade_10</th>
+      <th>grade_11</th>
+      <th>grade_12</th>
+      <th>grade_2</th>
+      <th>grade_3</th>
+      <th>grade_4</th>
+      <th>grade_5</th>
+      <th>grade_6</th>
+      <th>grade_7</th>
+      <th>grade_8</th>
+      <th>grade_9</th>
+      <th>grade_K</th>
+      <th>grade_PE</th>
+      <th>grade_PK</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+### Column-bind `ohe` onto `grades_df`
+
+Notice that we dropped `grade_offered` since it's redundant information.
+
+
+```python
+grades_ohe_df = pd.concat([grades_df.drop("grade_offered", axis=1), ohe], axis=1)
+grades_ohe_df.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>school_index</th>
+      <th>grade_10</th>
+      <th>grade_11</th>
+      <th>grade_12</th>
+      <th>grade_2</th>
+      <th>grade_3</th>
+      <th>grade_4</th>
+      <th>grade_5</th>
+      <th>grade_6</th>
+      <th>grade_7</th>
+      <th>grade_8</th>
+      <th>grade_9</th>
+      <th>grade_K</th>
+      <th>grade_PE</th>
+      <th>grade_PK</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+## Deduplicate
+
+At this point, `grades_ohe_df` is nearly done. We need to sum the one hot encoded features such that there is one record per `school_index` value. At the moment, there is one record per `1.0` value per one hot encoded feature per school.
+
+That is why there are more records in `grades_ohe_df` than in `cps_sy1819`.
+
+
+```python
+grades_ohe_df.shape
+```
+
+
+
+
+    (5222, 15)
+
+
+
+
+```python
+cps_sy1819.shape
+```
+
+
+
+
+    (660, 4)
+
+
+
+By [grouping by](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html) `school_index`, we can sum all of the one hot encoded features. This reduces the number of records such that there is only one record per `school_index`. Now each record contains many `1.0` values in the one hot encoded features because one school can serve many grades.
+
+*Note that we are subsetting the group by object only to those one hot encoded features via `ohe.columns`. Now that we have our group, we sum all of these features by using [`.agg(sum)`](https://pandas.pydata.org/pandas-docs/version/0.22/generated/pandas.core.groupby.DataFrameGroupBy.agg.html).*
+
+
+```python
+grades_ohe_dedup_df = grades_ohe_df.groupby("school_index")[ohe.columns].agg("sum").reset_index()
+grades_ohe_dedup_df.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>school_index</th>
+      <th>grade_10</th>
+      <th>grade_11</th>
+      <th>grade_12</th>
+      <th>grade_2</th>
+      <th>grade_3</th>
+      <th>grade_4</th>
+      <th>grade_5</th>
+      <th>grade_6</th>
+      <th>grade_7</th>
+      <th>grade_8</th>
+      <th>grade_9</th>
+      <th>grade_K</th>
+      <th>grade_PE</th>
+      <th>grade_PK</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+### Merge `grades_ohe_dedup_df` onto `cps_sy1819` via a left join
+
+We'll use the indices from `cps_sy1819` on the left-hand side, along with the `school_index` values from `grades_ohe_dedup_df`, to perfom the join.
 
 After the join, we'll drop the `school_index` feature since it's redundant information in that `school_id` already indicates that each record is related to one particular CPS school.
 
 
 ```python
 cps_sy1819 = pd.merge(cps_sy1819,
-                      grades_df,
+                      grades_ohe_dedup_df,
                       left_index=True,
                       right_on="school_index",
                       how="left").drop("school_index", axis=1)
@@ -430,7 +913,20 @@ cps_sy1819.head(10)
       <th>short_name</th>
       <th>primary_category</th>
       <th>grades_offered_all</th>
-      <th>grade_offered</th>
+      <th>grade_10</th>
+      <th>grade_11</th>
+      <th>grade_12</th>
+      <th>grade_2</th>
+      <th>grade_3</th>
+      <th>grade_4</th>
+      <th>grade_5</th>
+      <th>grade_6</th>
+      <th>grade_7</th>
+      <th>grade_8</th>
+      <th>grade_9</th>
+      <th>grade_K</th>
+      <th>grade_PE</th>
+      <th>grade_PK</th>
     </tr>
   </thead>
   <tbody>
@@ -440,82 +936,217 @@ cps_sy1819.head(10)
       <td>CARVER MILITARY HS</td>
       <td>HS</td>
       <td>9,10,11,12</td>
-      <td>9</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>609760</td>
-      <td>CARVER MILITARY HS</td>
+      <td>609780</td>
+      <td>MARINE LEADERSHIP AT AMES HS</td>
       <td>HS</td>
-      <td>9,10,11,12</td>
-      <td>10</td>
+      <td>7,8,9,10,11,12</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>609760</td>
-      <td>CARVER MILITARY HS</td>
+      <td>610304</td>
+      <td>PHOENIX MILITARY HS</td>
       <td>HS</td>
       <td>9,10,11,12</td>
-      <td>11</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>609760</td>
-      <td>CARVER MILITARY HS</td>
+      <td>610513</td>
+      <td>AIR FORCE HS</td>
       <td>HS</td>
       <td>9,10,11,12</td>
-      <td>12</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>609780</td>
-      <td>MARINE LEADERSHIP AT AMES HS</td>
+      <td>610390</td>
+      <td>RICKOVER MILITARY HS</td>
       <td>HS</td>
-      <td>7,8,9,10,11,12</td>
-      <td>7</td>
+      <td>9,10,11,12</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>5</th>
-      <td>609780</td>
-      <td>MARINE LEADERSHIP AT AMES HS</td>
+      <td>609754</td>
+      <td>CHICAGO MILITARY HS</td>
       <td>HS</td>
-      <td>7,8,9,10,11,12</td>
-      <td>8</td>
+      <td>9,10,11,12</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>6</th>
-      <td>609780</td>
-      <td>MARINE LEADERSHIP AT AMES HS</td>
-      <td>HS</td>
-      <td>7,8,9,10,11,12</td>
-      <td>9</td>
+      <td>610132</td>
+      <td>POE</td>
+      <td>ES</td>
+      <td>K,1,2,3,4,5,6</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>7</th>
-      <td>609780</td>
-      <td>MARINE LEADERSHIP AT AMES HS</td>
-      <td>HS</td>
-      <td>7,8,9,10,11,12</td>
-      <td>10</td>
+      <td>610177</td>
+      <td>SKINNER</td>
+      <td>ES</td>
+      <td>PK,K,1,2,3,4,5,6,7,8</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
     </tr>
     <tr>
       <th>8</th>
-      <td>609780</td>
-      <td>MARINE LEADERSHIP AT AMES HS</td>
-      <td>HS</td>
-      <td>7,8,9,10,11,12</td>
-      <td>11</td>
+      <td>610534</td>
+      <td>SKINNER NORTH</td>
+      <td>ES</td>
+      <td>K,1,2,3,4,5,6,7,8</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>9</th>
-      <td>609780</td>
-      <td>MARINE LEADERSHIP AT AMES HS</td>
-      <td>HS</td>
-      <td>7,8,9,10,11,12</td>
-      <td>12</td>
+      <td>610066</td>
+      <td>MCDADE</td>
+      <td>ES</td>
+      <td>K,1,2,3,4,5,6</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
     </tr>
   </tbody>
 </table>
 </div>
 
 
+
+
+```python
+
+```
